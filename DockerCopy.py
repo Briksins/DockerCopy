@@ -18,8 +18,21 @@ class DockerCopy:
         self.get_changes_from_git()
 
     def get_changes_from_git(self):
-        for changed_file in self.repo.untracked_files:
-            print os.path.join(self.project_path, changed_file)
+
+        # Get Changes from commit files
+        self.get_git_dif()
+
+        # Get changes from upstaged files
+        self.get_git_dif('HEAD')
+
+        print self.changed_files
+
+    def get_git_dif(self, diff_rule=None):
+        for changed_files in self.repo.index.diff(diff_rule):
+            if "/" in changed_files.a_path:
+                self.changed_files.append(os.path.join(self.project_path, *changed_files.a_path.split("/")))
+            else:
+                self.changed_files.append(os.path.join(self.project_path, changed_files.a_path))
 
 
 DockerCopy()
