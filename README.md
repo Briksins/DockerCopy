@@ -5,7 +5,8 @@ Please install all requirements before executing:
 pip install -r requirements.txt
 ```
 
-**Note:** `pypiwin32` is requirement only for `Windows` platform.
+**Note:** `pypiwin32` is requirement only for `Windows` platform. <br/>
+**Note2:** It is expected that docker is an Linux instance
 
 
 # Usage:
@@ -23,4 +24,27 @@ pip install -r requirements.txt
     ``` 
     
     
-**Development Still in Progress .......**
+# Config:
+`docker_copy.conf` has several options:
+
+1. `docker_container_id` - takes container id or empty
+
+```
+docker_container_id = 8bcc66aa8ad7
+```
+
+2. `path_mapping` - takes dictionary of pairs: `{local_path: docker_path}`
+
+```
+path_mapping = {"*": "/opt/myapp"} - would map all changed files to /opt/myapp/*
+or
+{"/tmp/path": "/opt/myapp"} - would map all changed files in /tmp/path to /opt/myapp/*
+
+mapping can be combained:
+{"*": "/opt/myapp", "/tmp/path": "/opt/myapp", "keyN": "valN"}
+
+```
+
+3. `other_files` - takes dictionary of pairs: `{"full_local_path": "docker_path"}` - 
+and copy other additional files (outside of git projects) to the container.<br/> 
+Logic is the same as with `path_mapping`
