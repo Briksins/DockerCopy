@@ -25,6 +25,7 @@ class DockerCopy:
         self.folder_created = {}
         self.mapped_paths = None
         self.other_files = None
+        self.ignored_files = []
 
         self.init_conf()
         self.init_args()
@@ -54,6 +55,14 @@ class DockerCopy:
                     self.other_files = json.loads(other_files)
                 except Exception, e:
                     print "Failed to parse other files from config. Exception: " + str(e.message)
+                    sys.exit(-1)
+
+            ignored_files = self.conf.get("Optional", "ignore_files")
+            if ignored_files is not None and len(ignored_files) > 0:
+                try:
+                    self.ignored_files = json.loads(ignored_files)
+                except Exception, e:
+                    print "Failed to parse ignored files from config. Exception: " + str(e.message)
                     sys.exit(-1)
         except Exception, e:
             print "Failed to read config file. Exception: " + str(e.message)
@@ -123,6 +132,9 @@ class DockerCopy:
 
     def get_git_dif(self, diff_rule=None):
         for changed_file in self.repo.index.diff(diff_rule):
+            if self.check_if_ignored(changed_file.a_path):
+                continue
+
             if "/" not in changed_file.a_path:
                 self.changed_files.append({
                     "local": os.path.join(self.project_path, changed_file.a_path),
@@ -139,11 +151,17 @@ class DockerCopy:
         if other_files is None or len(other_files) == 0:
             return
 
-        for other_file in other_files:
+        for other_file in self.other_files:
             self.changed_files.append({
                 "local": other_file,
-                "docker": other_files[other_file]
+                "docker": self.other_files[other_file]
             })
+
+    def check_if_ignored(self, changed_file):
+        for ignore_file in self.ignored_files:
+            if changed_file.endswith(ignore_file):
+                return True
+        return False
 
     def handle_docker_path_mapping(self, changed_file, split=False):
         if self.mapped_paths is None:
@@ -164,9 +182,15 @@ class DockerCopy:
                 if "*" in self.mapped_paths:
                     return self.mapped_paths["*"] + "/" + changed_path + "/"
 
+            if changed_file == "*":
+                return "/opt/" + self.project_name + "/"
             return "/opt/" + self.project_name + "/" + changed_file + "/"
 
     def copy_modified_git_files_to_docker(self):
+        print "This files will be copied:"
+        for change_set in self.changed_files:
+            print "From: " + change_set["local"] + " To: " + change_set["docker"]
+
         for change_set in self.changed_files:
             self.copy_to_docker(change_set["local"], change_set["docker"])
 
